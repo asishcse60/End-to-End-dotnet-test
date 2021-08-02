@@ -7,7 +7,7 @@ namespace Catalog.Database.Repositories
     public interface IItemRepository
     {
         Task<Item> GetItemAsync(string id);
-        Task<IEnumerable<Item>> GetItemsAsync();
+        Task<IList<Item>> GetItemsAsync();
         Task CreateItemAsync(Item item);
         Task UpdateItemAsync(Item item);
         Task DeleteItemAsync(string id);

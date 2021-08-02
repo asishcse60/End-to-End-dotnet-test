@@ -28,7 +28,7 @@ namespace Catalog.Api.Controllers
             var items = (await _repository.GetItemsAsync());
             if (!string.IsNullOrEmpty(name))
             {
-                items = items.Where(item => item.Name.Contains(name, StringComparison.OrdinalIgnoreCase));
+                items = items.Where(itm => itm.Name == name).ToList();
             }
             _logger.LogInformation($"{DateTime.UtcNow:hh:mm:ss}: Retrieved {items.Count()} items");
             return (List<Item>)items;

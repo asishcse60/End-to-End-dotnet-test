@@ -24,7 +24,7 @@ namespace Catalog.Database.Repositories
             return await _itemsCollection.Find(filter).SingleOrDefaultAsync();
         }
 
-        public async Task<IEnumerable<Item>> GetItemsAsync()
+        public async Task<IList<Item>> GetItemsAsync()
         {
             return await _itemsCollection.Find(new BsonDocument()).ToListAsync();
         }

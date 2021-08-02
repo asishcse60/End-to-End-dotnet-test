@@ -21,7 +21,7 @@ namespace Catalog.Database.Repositories
             return await Task.FromResult(item);
         }
 
-        public async Task<IEnumerable<Item>> GetItemsAsync()
+        public async Task<IList<Item>> GetItemsAsync()
         {
             return await Task.FromResult(items);
         }
