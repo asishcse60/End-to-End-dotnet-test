@@ -80,6 +80,22 @@ namespace Catalog.UnitTest
             //Assert
             result.Should().OnlyContain(im=>im.Name == expectedItems[0].Name ||  im.Name == expectedItems[2].Name);
         }
+
+        [Fact]
+        public async Task CreateItemTestAsync()
+        {
+            //Arrange
+            var item = GetItem();
+            var controller = new CatalogItemsController(_repositoryMock.Object, _loggerMock.Object);
+            //Act
+            var result = await controller.CreateItemAsync(item);
+
+            //Assert
+            var createdItem = (result.Result as CreatedAtActionResult)?.Value as Item;
+            item.Should().BeEquivalentTo(createdItem, options=>options.ComparingByMembers<Item>().ExcludingMissingMembers());
+            createdItem?.Id.Should().NotBeEmpty();
+            createdItem?.CreatedDate.Should().BeCloseTo(DateTimeOffset.UtcNow, 1000);
+        }
         private Item GetItem()
         {
             return new Item()

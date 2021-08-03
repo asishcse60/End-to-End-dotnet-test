@@ -47,7 +47,7 @@ namespace Catalog.Api.Controllers
         public async Task<ActionResult<Item>> CreateItemAsync(Item item)
         {
             await _repository.CreateItemAsync(item);
-            return item;
+            return CreatedAtAction(nameof(GetItemAsync), new {id = item.Id}, item);
         }
         [HttpPut("Update")]
         public async Task<ActionResult> UpdateItemAsync(string id, Item itemDto)
