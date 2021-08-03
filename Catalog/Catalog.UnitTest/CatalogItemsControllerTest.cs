@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Catalog.Api.Controllers;
 using Catalog.Contracts.Models;
@@ -18,10 +17,12 @@ namespace Catalog.UnitTest
         private readonly Mock<IItemRepository> _repositoryMock;
         private readonly Mock<ILogger<CatalogItemsController>>_loggerMock;
         private readonly Random _rand = new Random();
+        private readonly CatalogItemsController _catalogItemsController;
         public CatalogItemsControllerTest()
         {
             _repositoryMock = new Mock<IItemRepository>();
             _loggerMock = new Mock<ILogger<CatalogItemsController>>();
+            _catalogItemsController = new CatalogItemsController(_repositoryMock.Object, _loggerMock.Object);
         }
         //Arrange + Act + Assert
         [Fact]
@@ -29,9 +30,8 @@ namespace Catalog.UnitTest
         {
             //Arrange
             _repositoryMock.Setup(repo => repo.GetItemAsync(It.IsAny<string>())).ReturnsAsync((Item) null);
-            var controller = new CatalogItemsController(_repositoryMock.Object, _loggerMock.Object);
             //Act
-            var result = await controller.GetItemAsync(Guid.NewGuid().ToString());
+            var result = await _catalogItemsController.GetItemAsync(Guid.NewGuid().ToString());
             //Assert
             result.Result.Should().BeOfType<NotFoundResult>();
             Assert.Null(result.Value);//optional
@@ -42,9 +42,8 @@ namespace Catalog.UnitTest
             var expectedItem = GetItem();
             //Arrange
             _repositoryMock.Setup(repo => repo.GetItemAsync(It.IsAny<string>())).ReturnsAsync(expectedItem);
-            var controller = new CatalogItemsController(_repositoryMock.Object, _loggerMock.Object);
             //Act
-            var result = await controller.GetItemAsync(Guid.NewGuid().ToString());
+            var result = await _catalogItemsController.GetItemAsync(Guid.NewGuid().ToString());
             //Assert
             result.Value.Should().BeEquivalentTo(expectedItem);
             Assert.Equal(expectedItem.Id,result.Value.Id);//optional
@@ -55,9 +54,8 @@ namespace Catalog.UnitTest
             var expectedItems = new List<Item>{ GetItem(),GetItem(),GetItem() };
             //Arrange
             _repositoryMock.Setup(repo=>repo.GetItemsAsync()).ReturnsAsync(expectedItems);
-            var controller = new CatalogItemsController(_repositoryMock.Object, _loggerMock.Object);
             //Act
-            var result = await controller.GetItemsAsync();
+            var result = await _catalogItemsController.GetItemsAsync();
             //Assert
             result.Should().BeEquivalentTo(expectedItems);
             Assert.Equal(3, result.Count);//optional
@@ -72,10 +70,9 @@ namespace Catalog.UnitTest
             };
             var nameToMatch = "Potion";
             _repositoryMock.Setup(repo => repo.GetItemsAsync()).ReturnsAsync(expectedItems);
-            var controller = new CatalogItemsController(_repositoryMock.Object, _loggerMock.Object);
             
             //Act
-            var result = await controller.GetItemsAsync(nameToMatch);
+            var result = await _catalogItemsController.GetItemsAsync(nameToMatch);
             
             //Assert
             result.Should().OnlyContain(im=>im.Name == expectedItems[0].Name ||  im.Name == expectedItems[2].Name);
@@ -86,15 +83,55 @@ namespace Catalog.UnitTest
         {
             //Arrange
             var item = GetItem();
-            var controller = new CatalogItemsController(_repositoryMock.Object, _loggerMock.Object);
             //Act
-            var result = await controller.CreateItemAsync(item);
+            var result = await _catalogItemsController.CreateItemAsync(item);
 
             //Assert
             var createdItem = (result.Result as CreatedAtActionResult)?.Value as Item;
             item.Should().BeEquivalentTo(createdItem, options=>options.ComparingByMembers<Item>().ExcludingMissingMembers());
             createdItem?.Id.Should().NotBeEmpty();
             createdItem?.CreatedDate.Should().BeCloseTo(DateTimeOffset.UtcNow, 1000);
+        }
+
+        [Fact]
+        public async Task UpdateItemTestAsync()
+        {
+            //Arrange
+            var item = GetItem();
+            _repositoryMock.Setup(repo => repo.GetItemAsync(It.IsAny<string>())).ReturnsAsync(item);
+            var itemId = item.Id;
+            var itemToUpdate = GetItem();
+
+            //Act
+            var result = await _catalogItemsController.UpdateItemAsync(itemId, itemToUpdate);
+
+            //Assert
+            result.Should().BeOfType<NoContentResult>();
+        }
+
+        [Fact]
+        public async Task DeleteItemTestAsync()
+        {
+            //Arrange
+            var item = GetItem();
+            _repositoryMock.Setup(repo => repo.GetItemAsync(It.IsAny<string>())).ReturnsAsync(item);
+            //Act
+            var result = await _catalogItemsController.DeleteItemAsync(item.Id);
+
+            //Assert
+            result.Should().BeOfType<NoContentResult>();
+        }
+
+        [Fact]
+        public async Task DeleteItemNotFoundTestAsync()
+        {
+            //Arrange
+            var item = GetItem();
+            _repositoryMock.Setup(repo => repo.GetItemAsync(It.IsAny<string>())).ReturnsAsync((Item) null);
+            //Act
+            var result = await _catalogItemsController.DeleteItemAsync(item.Id);
+            //Assert
+            result.Should().BeOfType<NotFoundResult>();
         }
         private Item GetItem()
         {
