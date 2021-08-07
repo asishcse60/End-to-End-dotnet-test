@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Catalog.Api.Controllers
 {
-    [Route("[controller]")]
+    [Route("api/[controller]")]
     [ApiController]
     public class CatalogItemsController : ControllerBase
     {
@@ -34,8 +34,9 @@ namespace Catalog.Api.Controllers
             return (List<Item>)items;
         }
         [HttpGet("Item")]
-        public async Task<ActionResult<Item>> GetItemAsync(string id)
+        public async Task<ActionResult<Item>> GetItemAsync([FromQuery]string id)
         {
+            Console.WriteLine("Calling here for single Item..");
             var item = await _repository.GetItemAsync(id);
             if (item is null)
             {

@@ -32,6 +32,7 @@ namespace Catalog.UnitTest
             _repositoryMock.Setup(repo => repo.GetItemAsync(It.IsAny<string>())).ReturnsAsync((Item) null);
             //Act
             var result = await _catalogItemsController.GetItemAsync(Guid.NewGuid().ToString());
+            
             //Assert
             result.Result.Should().BeOfType<NotFoundResult>();
             Assert.Null(result.Value);//optional
@@ -117,7 +118,7 @@ namespace Catalog.UnitTest
             _repositoryMock.Setup(repo => repo.GetItemAsync(It.IsAny<string>())).ReturnsAsync(item);
             //Act
             var result = await _catalogItemsController.DeleteItemAsync(item.Id);
-
+            
             //Assert
             result.Should().BeOfType<NoContentResult>();
         }
