@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Threading.Tasks;
 using Catalog.Api.Controllers;
 using Catalog.Contracts.Models;
@@ -14,6 +15,7 @@ namespace Catalog.UnitTest
 {
     public class CatalogItemsControllerTest
     {
+        //don't test multiple logic in one test
         private readonly Mock<IItemRepository> _repositoryMock;
         private readonly Mock<ILogger<CatalogItemsController>>_loggerMock;
         private readonly Random _rand = new Random();
@@ -32,10 +34,12 @@ namespace Catalog.UnitTest
             _repositoryMock.Setup(repo => repo.GetItemAsync(It.IsAny<string>())).ReturnsAsync((Item) null);
             //Act
             var result = await _catalogItemsController.GetItemAsync(Guid.NewGuid().ToString());
-            
+            var actionResult = result as OkObjectResult;
+          
+            Assert.NotNull(actionResult);
+            var value = (NotFoundResult)actionResult.Value;
             //Assert
-            result.Result.Should().BeOfType<NotFoundResult>();
-            Assert.Null(result.Value);//optional
+            value.Should().BeOfType<NotFoundResult>();
         }
         [Fact]
         public async Task GetItemAsync_ExistingItemFound()
@@ -45,9 +49,27 @@ namespace Catalog.UnitTest
             _repositoryMock.Setup(repo => repo.GetItemAsync(It.IsAny<string>())).ReturnsAsync(expectedItem);
             //Act
             var result = await _catalogItemsController.GetItemAsync(Guid.NewGuid().ToString());
+            var actionResult = result as OkObjectResult;
             //Assert
-            result.Value.Should().BeEquivalentTo(expectedItem);
-            Assert.Equal(expectedItem.Id,result.Value.Id);//optional
+            Assert.NotNull(actionResult);
+            var value = (Item)actionResult.Value;
+            value.Should().BeEquivalentTo(expectedItem);
+            Assert.Equal(expectedItem.Id,value.Id);//optional
+        }
+        [Fact]
+        public async Task GetItemAsync_OkStatus()
+        {
+            var expectedItem = GetItem();
+            //Arrange
+            _repositoryMock.Setup(repo => repo.GetItemAsync(It.IsAny<string>())).ReturnsAsync(expectedItem);
+
+            //Act
+            var result = await _catalogItemsController.GetItemAsync(Guid.NewGuid().ToString());
+            var actionResult = result as OkObjectResult;
+
+            //Assert
+            Assert.NotNull(actionResult);
+            Assert.Equal((int)HttpStatusCode.OK, actionResult.StatusCode);//optional
         }
         [Fact]
         public async Task GetItemsAsync_ExistingAllItemsFound()
@@ -55,11 +77,29 @@ namespace Catalog.UnitTest
             var expectedItems = new List<Item>{ GetItem(),GetItem(),GetItem() };
             //Arrange
             _repositoryMock.Setup(repo=>repo.GetItemsAsync()).ReturnsAsync(expectedItems);
+
             //Act
             var result = await _catalogItemsController.GetItemsAsync();
+            var actionResult = result as OkObjectResult;
+
             //Assert
-            result.Should().BeEquivalentTo(expectedItems);
-            Assert.Equal(3, result.Count);//optional
+            Assert.NotNull(actionResult);
+            actionResult.Value.Should().BeEquivalentTo(expectedItems);
+        }
+        [Fact]
+        public async Task GetItemsAsync_OkStatus()
+        {
+            var expectedItems = new List<Item> { GetItem(), GetItem(), GetItem() };
+            //Arrange
+            _repositoryMock.Setup(repo => repo.GetItemsAsync()).ReturnsAsync(expectedItems);
+
+            //Act
+            var result = await _catalogItemsController.GetItemsAsync();
+            var actionResult = result as OkObjectResult;
+
+            //Assert
+            Assert.NotNull(actionResult);
+            Assert.Equal((int)HttpStatusCode.OK, actionResult.StatusCode);//optional
         }
         [Fact]
         public async Task GetItemsAsync_ExistingAllMatchingItemsFound()
@@ -74,9 +114,12 @@ namespace Catalog.UnitTest
             
             //Act
             var result = await _catalogItemsController.GetItemsAsync(nameToMatch);
-            
+            var actionResult = result as OkObjectResult;
+
             //Assert
-            result.Should().OnlyContain(im=>im.Name == expectedItems[0].Name ||  im.Name == expectedItems[2].Name);
+            Assert.NotNull(actionResult);
+            var value = (List<Item>)actionResult.Value;
+            value.Should().OnlyContain(im=>im.Name == expectedItems[0].Name ||  im.Name == expectedItems[2].Name);
         }
 
         [Fact]
@@ -86,14 +129,34 @@ namespace Catalog.UnitTest
             var item = GetItem();
             //Act
             var result = await _catalogItemsController.CreateItemAsync(item);
+            var actionResult = result as OkObjectResult;
+            Assert.NotNull(actionResult);
 
             //Assert
-            var createdItem = (result.Result as CreatedAtActionResult)?.Value as Item;
-            item.Should().BeEquivalentTo(createdItem, options=>options.ComparingByMembers<Item>().ExcludingMissingMembers());
-            createdItem?.Id.Should().NotBeEmpty();
-            createdItem?.CreatedDate.Should().BeCloseTo(DateTimeOffset.UtcNow, 1000);
+            var value = (HttpStatusCode)actionResult.Value;
+            value.Should().BeEquivalentTo(HttpStatusCode.Created);
+            //var createdItem = (result.Result as CreatedAtActionResult)?.Value as Item;
+          //  item.Should().BeEquivalentTo(createdItem, options=>options.ComparingByMembers<Item>().ExcludingMissingMembers());
+          //  createdItem?.Id.Should().NotBeEmpty();
+          //  createdItem?.CreatedDate.Should().BeCloseTo(DateTimeOffset.UtcNow, 1000);
         }
+        [Fact]
+        public async Task UpdateAsync_OkStatus()
+        {
+            //Arrange
+            var item = GetItem();
+            _repositoryMock.Setup(repo => repo.GetItemAsync(It.IsAny<string>())).ReturnsAsync(item);
+            var itemId = item.Id;
+            var itemToUpdate = GetItem();
 
+            //Act
+            var result = await _catalogItemsController.UpdateItemAsync(itemId, itemToUpdate);
+            var actionResult = result as OkObjectResult;
+
+            //Assert
+            Assert.NotNull(actionResult);
+            Assert.Equal((int)HttpStatusCode.OK, actionResult.StatusCode);//optional
+        }
         [Fact]
         public async Task UpdateItemTestAsync()
         {
@@ -105,9 +168,12 @@ namespace Catalog.UnitTest
 
             //Act
             var result = await _catalogItemsController.UpdateItemAsync(itemId, itemToUpdate);
+            var actionResult = result as OkObjectResult;
 
             //Assert
-            result.Should().BeOfType<NoContentResult>();
+            Assert.NotNull(actionResult);
+            var value = (NoContentResult)actionResult.Value;
+            value.Should().BeOfType<NoContentResult>();
         }
 
         [Fact]
@@ -118,9 +184,11 @@ namespace Catalog.UnitTest
             _repositoryMock.Setup(repo => repo.GetItemAsync(It.IsAny<string>())).ReturnsAsync(item);
             //Act
             var result = await _catalogItemsController.DeleteItemAsync(item.Id);
-            
+            var actionResult = result as OkObjectResult;
+            Assert.NotNull(actionResult);
+            var value = (NoContentResult)actionResult.Value;
             //Assert
-            result.Should().BeOfType<NoContentResult>();
+            value.Should().BeOfType<NoContentResult>();
         }
 
         [Fact]
@@ -131,8 +199,11 @@ namespace Catalog.UnitTest
             _repositoryMock.Setup(repo => repo.GetItemAsync(It.IsAny<string>())).ReturnsAsync((Item) null);
             //Act
             var result = await _catalogItemsController.DeleteItemAsync(item.Id);
+            var actionResult = result as OkObjectResult;
+            Assert.NotNull(actionResult);
+            var value = (NotFoundResult)actionResult.Value;
             //Assert
-            result.Should().BeOfType<NotFoundResult>();
+            value.Should().BeOfType<NotFoundResult>();
         }
         private Item GetItem()
         {
